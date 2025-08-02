@@ -1,0 +1,185 @@
+SQL Queries that answers the below analytical questions:
+
+1. Who prefers energy drink more? (male/female/non-binary?)
+SELECT 
+    gender, COUNT(*)
+FROM
+    fact_survey_responses
+        JOIN
+    dim_repondents USING (Respondent_ID)
+GROUP BY gender
+ORDER BY COUNT(*) DESC;
+
+2. Which age group prefers energy drinks more?
+SELECT 
+    age, COUNT(*)
+FROM
+    fact_survey_responses
+        JOIN
+    dim_repondents USING (Respondent_ID)
+GROUP BY age
+ORDER BY COUNT(*) DESC;
+
+3. Which type of marketing reaches the most Youth (15-30)?
+SELECT 
+    Marketing_channels, COUNT(*)
+FROM
+    fact_survey_responses
+        JOIN
+    dim_repondents USING (Respondent_ID)
+WHERE age in ("15-18","19-30")
+GROUP BY Marketing_channels
+ORDER BY COUNT(*) DESC;
+
+4. What are the preferred ingredients of energy drinks among respondents?
+SELECT 
+    Ingredients_expected, COUNT(*)
+FROM
+    fact_survey_responses
+GROUP BY Ingredients_expected
+ORDER BY COUNT(*) DESC;
+
+5. What packaging preferences do respondents have for energy drinks?
+SELECT 
+    Packaging_preference, COUNT(*)
+FROM
+    fact_survey_responses
+GROUP BY Packaging_preference
+ORDER BY COUNT(*) DESC;
+
+6. Who are the current market leaders? 
+SELECT 
+    Current_brands, COUNT(*)
+FROM
+    fact_survey_responses
+GROUP BY Current_brands
+ORDER BY COUNT(*) DESC;
+
+7. What are the primary reasons consumers prefer those brands over ours?
+SELECT 
+    Reasons_for_choosing_brands, COUNT(*)
+FROM
+    fact_survey_responses
+GROUP BY Reasons_for_choosing_brands
+ORDER BY COUNT(*) DESC;
+
+8. Which marketing channel can be used to reach more customers?
+SELECT 
+    Marketing_channels, COUNT(*)
+FROM
+    fact_survey_responses
+GROUP BY Marketing_channels
+ORDER BY COUNT(*) DESC;
+
+9. How effective are different marketing strategies and channels in reaching our customers?
+Given below two ways to answer the query:
+1. SELECT 
+    Marketing_channels,
+    SUM(CASE
+        WHEN Heard_before = 'Yes' THEN 1
+        ELSE 0
+    END) AS Brand_Awareness,
+    CONCAT(ROUND((SUM(CASE
+                        WHEN Heard_before = 'Yes' THEN 1
+                        ELSE 0
+                    END) * 100 / COUNT(*)),
+                    2),
+            '%') AS Brand_Awareness_percent,
+    SUM(CASE
+        WHEN Tried_before = 'Yes' THEN 1
+        ELSE 0
+    END) AS Tried_customer, 
+    CONCAT(ROUND((SUM(CASE
+        WHEN Tried_before = 'Yes' THEN 1
+        ELSE 0
+    END) * 100 / COUNT(*)),
+                    2),
+            '%') AS Tried_customer_percent
+FROM
+    fact_survey_responses
+GROUP BY Marketing_channels
+ORDER BY Brand_Awareness DESC
+----------------------------------------------
+2. with cte1 as (SELECT 
+Marketing_channels,
+    age,
+	count(*) as counts
+FROM
+    fact_survey_responses
+join dim_repondents using(Respondent_ID)
+group by marketing_channels,age),
+cte2 as (SELECT 
+Marketing_channels,
+    age,
+    dense_rank() over(partition by Marketing_channels order by counts desc) as rnk
+FROM
+cte1)
+SELECT 
+    *
+FROM
+    cte2
+WHERE
+    rnk = 1;
+##################################3
+
+10. What do people think about our brand? (overall rating)
+SELECT 
+    Brand_perception, ROUND(AVG(Taste_experience),1), COUNT(*)
+FROM
+    fact_survey_responses
+WHERE
+    Current_brands = 'CodeX'
+        AND Tried_before = 'Yes'
+GROUP BY Brand_perception;
+
+11. Which cities do we need to focus more on?
+SELECT 
+    city, COUNT(*) AS no_of_people_purchased
+FROM
+    fact_survey_responses
+        JOIN
+    dim_repondents ON dim_repondents.Respondent_ID = fact_survey_responses.Respondent_ID
+        JOIN
+    cities ON dim_repondents.City_ID = cities.City_ID
+    where Current_brands="CodeX"
+GROUP BY city
+ORDER BY no_of_people_purchased;
+
+12. Where do respondents prefer to purchase energy drinks?
+SELECT 
+    Purchase_location, COUNT(*)
+FROM
+    fact_survey_responses
+GROUP BY Purchase_location
+ORDER BY COUNT(*) DESC;
+
+13. What are the typical consumption situations for energy drinks among respondents?
+SELECT 
+    Typical_consumption_situations, COUNT(*)
+FROM
+    fact_survey_responses
+GROUP BY Typical_consumption_situations
+ORDER BY COUNT(*) DESC;
+
+14. What factors influence respondents' purchase decisions,such as price range and limited edition packaging?
+SELECT 
+    Price_range,
+    Limited_edition_packaging,
+    COUNT(*) AS count
+FROM fact_survey_responses
+GROUP BY Price_range, Limited_edition_packaging
+ORDER BY Price_range;
+
+SELECT Reasons_for_choosing_brands, COUNT(*) AS count
+FROM fact_survey_responses
+GROUP BY Reasons_for_choosing_brands
+ORDER BY count DESC;
+
+15. Which area of business should we focus more on our product development? (Branding/taste/availability)
+SELECT 
+    Reasons_for_choosing_brands, COUNT(*)
+FROM
+    fact_survey_responses
+GROUP BY Reasons_for_choosing_brands
+ORDER BY COUNT(*) DESC;
+
